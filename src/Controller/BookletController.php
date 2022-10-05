@@ -7,6 +7,7 @@ use App\Repository\BookletPercentRepository;
 use App\Repository\BookletRepository;
 use App\Repository\CurrentAccountRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\ParamConverter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -103,6 +104,7 @@ class BookletController extends AbstractController {
      * @return JsonResponse
      */
     #[Route('/api/booklets', name: 'booklets_delete_booklet', methods: ["POST"])]
+    #[IsGranted("ROLE_ADMIN", message: "Vous n'avez rien à faire avec cette route.")]
     public function create_booklet(Request $request, BookletPercentRepository $percentRepository,
                                    CurrentAccountRepository $accountRepository): JsonResponse {
 

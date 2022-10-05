@@ -5,10 +5,12 @@ namespace App\DataFixtures;
 use App\Entity\Booklet;
 use App\Entity\BookletPercent;
 use App\Entity\CurrentAccount;
+use App\Entity\User;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Persistence\ObjectManager;
 use Faker\Factory;
 use Faker\Generator;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 class AppFixtures extends Fixture {
     /**
@@ -18,10 +20,19 @@ class AppFixtures extends Fixture {
     private Generator $faker;
 
     /**
+     * Class Hashent le password
+     *
+     * @var UserPasswordHasherInterface
+     */
+    private UserPasswordHasherInterface $userPasswordHasher;
+
+    /**
      * Constructeur de la class des fixtures
      */
-    public function __construct() {
+    public function __construct(UserPasswordHasherInterface $userPasswordHasher) {
         $this->faker = Factory::create("fr_FR");
+        $this->userPasswordHasher = $userPasswordHasher;
+
     }
 
     /**
@@ -31,6 +42,26 @@ class AppFixtures extends Fixture {
      * @return void
      */
     public function load(ObjectManager $manager): void {
+        for ($i=0; $i<=10; $i++) {
+            $userUser = new User();
+            $password = $this->faker->password(2, 6);
+            $userUser->setUsername($this->faker->userName() . "@" . $password);
+            $userUser->setRoles(["ROLE_USER"]);
+            $userUser->setPassword($this->userPasswordHasher->hashPassword($userUser, $password));
+
+            $manager->persist($userUser);
+        }
+
+        for ($i=0; $i<1; $i++) {
+            $userUser = new User();
+            $password = $this->faker->password(2, 6);
+            $userUser->setUsername("admin");
+            $userUser->setRoles(["ROLE_ADMIN"]);
+            $userUser->setPassword($this->userPasswordHasher->hashPassword($userUser, "password"));
+
+            $manager->persist($userUser);
+        }
+
         $bkl_pr_array = [];
         for ($i = 0; $i <= 3; $i++) {
             $bkl_pr = new BookletPercent();
@@ -40,7 +71,7 @@ class AppFixtures extends Fixture {
         }
 
         $crt_acc_array = [];
-        for ($i = 0; $i < 10; $i++){
+        for ($i = 0; $i < 10; $i++) {
             $crt_acc = new CurrentAccount();
             $crt_acc->setName($this->faker->word());
             $crt_acc->setMoney($this->faker->randomFloat(2));
