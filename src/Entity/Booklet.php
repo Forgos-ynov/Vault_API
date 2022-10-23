@@ -13,27 +13,36 @@ class Booklet {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(["getAllBooklet", "getBooklet"])]
+    #[Groups(["getBooklet", "getCurrentAccount"])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(["getAllBooklet", "getBooklet"])]
+    #[Groups(["getBooklet", "getCurrentAccount"])]
+    #[Assert\NotNull(message: "Un livret doit avoir un nom.")]
+    #[Assert\Length(min: 2, max: 150, minMessage: "Le nom du livret doit comporter au moins {{ limit }} caractères.",
+                    maxMessage: "Le nom du livret doit contenir maximum {{ limit }} caractères.")]
     private ?string $name = null;
 
     #[ORM\Column]
-    #[Groups(["getAllBooklet", "getBooklet"])]
+    #[Groups(["getBooklet", "getCurrentAccount"])]
     #[Assert\NotNull(message: "Un livret doit avoir de l'argent.")]
+    #[Assert\PositiveOrZero(message: "Un livret dois contenir un nombre d'argent positif (ou égal à zéro).")]
     private ?float $money = null;
 
     #[ORM\ManyToOne(inversedBy: 'booklets')]
-    #[Groups(["getAllBooklet", "getBooklet"])]
+    #[Groups(["getBooklet", "getCurrentAccount"])]
+    #[Assert\NotNull(message: "Un livret doit contenir un certain pourcentage d'intéret.")]
+    #[Assert\Type(BookletPercent::class)]
     private ?BookletPercent $bookletPercent = null;
 
     #[ORM\ManyToOne(inversedBy: 'booklets')]
-    #[Groups(["getAllBooklet", "getBooklet"])]
+    #[Groups(["getBooklet"])]
+    #[Assert\NotNull(message: "Un livret doit contenir un compte courrant.")]
+    #[Assert\Type(CurrentAccount::class)]
     private ?CurrentAccount $currentAccount = null;
 
     #[ORM\Column]
+    #[Assert\NotNull(message: "Le livret doit avoir un statut.")]
     private ?bool $status = null;
 
     public function getId(): ?int {

@@ -8,6 +8,7 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\HttpFoundation\File\File;
 use Vich\UploaderBundle\Mapping\Annotation as Vich;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: PictureRepository::class)]
 /**
@@ -21,32 +22,37 @@ class Picture {
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(["getPicture"])]
+    #[Groups(["getPicture"])]#[Assert\NotNull(message: "Une image doit avoir un nom.")]
+
     private ?string $realName = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(["getPicture"])]
+    #[Groups(["getPicture"])]#[Assert\NotNull(message: "Une image doit avoir un chemin de stockage.")]
     private ?string $realPath = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(["getPicture"])]
+    #[Groups(["getPicture"])]#[Assert\NotNull(message: "Une image doit avoir un chemin privé.")]
     private ?string $publicPath = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(["getPicture"])]
+    #[Groups(["getPicture"])]#[Assert\NotNull(message: "Une image doit avoir un mimetype.")]
     private ?string $mineType = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     #[Groups(["getAllBooklet", "getBooklet"])]
+    #[Assert\NotNull(message: "Une image doit avoir une date de stockage.")]
+    #[Assert\DateTime(message: "La date de stockage d'une image doit être une instance de DateTime.")]
     private ?\DateTimeInterface $uploadDate = null;
 
     /**
      * @var File|null
      * @Vich\UploadableField(mapping="image", fileNameProperty="realPath")
      */
+    #[Assert\NotNull(message: "Une image doit avoir un fichier.")]
     private $file;
 
     #[ORM\Column]
+    #[Assert\NotNull(message: "Une image doit avoir un statut.")]
     private ?bool $status = null;
 
     public function getId(): ?int {

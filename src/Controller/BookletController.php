@@ -19,22 +19,24 @@ use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
-class BookletController extends AbstractController {
+class BookletController extends GlobalAbstractController {
+
+    private EntityManagerInterface $entityManager;
+    private SerializerInterface $serializer;
 
     /**
      * Constructeur de mon controlleur de booklet
      *
-     * @param SerializerInterface $serializer
      * @param EntityManagerInterface $entityManager
      * @param ValidatorInterface $validator
      * @param UrlGeneratorInterface $urlGenerator
+     * @param SerializerInterface $serializer
      */
-    public function __construct(SerializerInterface $serializer, EntityManagerInterface $entityManager,
-                                ValidatorInterface $validator, UrlGeneratorInterface $urlGenerator) {
-        $this->serializer = $serializer;
+    public function __construct(EntityManagerInterface $entityManager, ValidatorInterface $validator,
+                                UrlGeneratorInterface $urlGenerator, SerializerInterface $serializer) {
+        parent::__construct($validator, $urlGenerator, $serializer);
         $this->entityManager = $entityManager;
-        $this->validator = $validator;
-        $this->urlGenerator = $urlGenerator;
+        $this->serializer = $serializer;
     }
 
     /**
@@ -46,9 +48,9 @@ class BookletController extends AbstractController {
     #[Route('/api/booklets', name: 'booklets_get_all_booklets', methods: ["GET"])]
     public function get_all_booklets(BookletRepository $bookletRepository): JsonResponse {
         $booklets = $bookletRepository->findAll();
-        $jsonBooklets = $this->serializer->serialize($booklets, "json", ["groups" => "getAllBooklets"]);
+        $jsonBooklets = $this->serializer->serialize($booklets, "json", $this->groupsGetBooklet);
 
-        return $this->jsonResponseOk($jsonBooklets, ["groups" => "getAllBooklets"]);
+        return $this->jsonResponseOk($jsonBooklets);
     }
 
     /**
@@ -62,9 +64,9 @@ class BookletController extends AbstractController {
     #[ParamConverter("booklet", options: ["id" => "idBooklet"])]
     public function get_booklet_by_id(BookletRepository $bookletRepository, Booklet $booklet): JsonResponse {
         $booklet_bdd = $bookletRepository->find($booklet);
-        $jsonBooklet = $this->serializer->serialize($booklet_bdd, "json", ["groups" => "getBooklet"]);
+        $jsonBooklet = $this->serializer->serialize($booklet_bdd, "json", $this->groupsGetBooklet);
 
-        return$this->jsonResponseOk($jsonBooklet, []);
+        return$this->jsonResponseOk($jsonBooklet);
     }
 
     /**
@@ -73,10 +75,24 @@ class BookletController extends AbstractController {
      * @param Booklet $booklet
      * @return JsonResponse
      */
-    #[Route('/api/booklets/{idBooklet}', name: 'booklets_booklet_turn_off', methods: ["DELETE"])]
+    #[Route('/api/booklets/off/{idBooklet}', name: 'booklets_booklet_turn_off', methods: ["DELETE"])]
     #[ParamConverter("booklet", options: ["id" => "idBooklet"])]
     public function booklet_turn_off(Booklet $booklet): JsonResponse {
         $booklet->setStatus(false);
+        $this->entityManager->flush();
+        return $this->jsonResponseNoContent();
+    }
+
+    /**
+     * Route permettant de d'activer un booklet
+     *
+     * @param Booklet $booklet
+     * @return JsonResponse
+     */
+    #[Route('/api/booklets/on/{idBooklet}', name: 'booklets_booklet_turn_on', methods: ["DELETE"])]
+    #[ParamConverter("booklet", options: ["id" => "idBooklet"])]
+    public function booklet_turn_on(Booklet $booklet): JsonResponse {
+        $booklet->setStatus(true);
         $this->entityManager->flush();
         return $this->jsonResponseNoContent();
     }
@@ -87,7 +103,7 @@ class BookletController extends AbstractController {
      * @param Booklet $booklet
      * @return JsonResponse
      */
-    #[Route('/api/booklets/delete/{idBooklet}', name: 'booklets_delete_booklet', methods: ["DELETE"])]
+    #[Route('', name: 'booklets_delete_booklet', methods: ["DELETE"])]
     #[ParamConverter("booklet", options: ["id" => "idBooklet"])]
     public function delete_booklet(Booklet $booklet): JsonResponse {
         $this->entityManager->remove($booklet);
@@ -129,7 +145,7 @@ class BookletController extends AbstractController {
         $this->entityManager->persist($booklet);
         $this->entityManager->flush();
 
-        $jsonBooklet = $this->serializer->serialize($booklet, "json", ["groups" => "getBooklet"]);
+        $jsonBooklet = $this->serializer->serialize($booklet, "json", $this->groupsGetBooklet);
         $location = $this->urlGenerator_get_booklet_by_id($booklet);
         return $this->jsonResponseCreated($jsonBooklet, ["location" => $location]);
     }
@@ -167,72 +183,8 @@ class BookletController extends AbstractController {
         $this->entityManager->persist($updateBooklet);
         $this->entityManager->flush();
 
-        $jsonBooklet = $this->serializer->serialize($updateBooklet, "json", ["groups" => "getBooklet"]);
+        $jsonBooklet = $this->serializer->serialize($updateBooklet, "json", $this->groupsGetBooklet);
         $location = $this->urlGenerator_get_booklet_by_id($updateBooklet);
         return $this->jsonResponseCreated($jsonBooklet, ["location" => $location]);
-    }
-
-    /**
-     * Fonction permettant de ressortir un JsonResponse de status No_content
-     *
-     * @return JsonResponse
-     */
-    private function jsonResponseNoContent() :JsonResponse {
-        return new JsonResponse(null, Response::HTTP_NO_CONTENT);
-    }
-
-    /**
-     * Fonction permettant de ressortir un JsonResponse de status OK en prenant en paramètre les data et le headers
-     *
-     * @param $data
-     * @param array $headers
-     * @return JsonResponse
-     */
-    private function jsonResponseOk($data, array $headers) :JsonResponse {
-        return new JsonResponse($data, Response::HTTP_OK, $headers, true);
-    }
-
-    /**
-     * Fonction retournant le nombre de validator error contenue dans un objet, 0 étant pareil que False
-     *
-     * @param $object
-     * @return integer
-     */
-    private function validatorError($object): int {
-        $errors = $this->validator->validate($object);
-        return $errors->count();
-    }
-
-    /**
-     * Fonction permettant de ressortir un JsonResponse de status Not_found avec les erreurs du validator error
-     *
-     * @param $object
-     * @return JsonResponse
-     */
-    private function jsonResponseValidatorError($object) :JsonResponse {
-        $errors = $this->validator->validate($object);
-        return new JsonResponse($this->serializer->serialize($errors, "json"),
-            Response::HTTP_NOT_MODIFIED, [],  true);
-    }
-
-    /**
-     * Retourne l'url de localisation du booklet entré en paramètre
-     *
-     * @param Booklet $booklet
-     * @return string
-     */
-    private function urlGenerator_get_booklet_by_id(Booklet $booklet) :string {
-        return $this->urlGenerator->generate("booklets_get_booklet_by_id",  ["idBooklet" => $booklet->getId()]);
-    }
-
-    /**
-     * Fonction permettant de ressorti un JsonResponse de status Created
-     *
-     * @param $data
-     * @param $headers
-     * @return JsonResponse
-     */
-    private function jsonResponseCreated($data, $headers) :JsonResponse {
-        return new JsonResponse($data, Response::HTTP_CREATED, $headers, true);
     }
 }

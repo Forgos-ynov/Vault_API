@@ -7,17 +7,19 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: BookletPercentRepository::class)]
 class BookletPercent {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(["getAllBooklet", "getBooklet"])]
+    #[Groups(["getBooklet", "getCurrentAccount"])]
     private ?int $id = null;
 
     #[ORM\Column]
-    #[Groups(["getAllBooklet", "getBooklet"])]
+    #[Groups(["getBooklet", "getCurrentAccount"])]
+    #[Assert\NotNull(message: "Un pourcentage de livret doit contenir un pourcentage.")]
     private ?float $percent = null;
 
     #[ORM\OneToMany(mappedBy: 'bookletAccount', targetEntity: Booklet::class)]
