@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use App\Repository\BookletRepository;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -44,6 +45,12 @@ class Booklet {
     #[ORM\Column]
     #[Assert\NotNull(message: "Le livret doit avoir un statut.")]
     private ?bool $status = null;
+
+    #[ORM\Column(type: Types::DATETIME_MUTABLE)]
+    #[ORM\ManyToOne(inversedBy: 'booklets')]
+    #[Assert\NotNull(message: "Le livret doit avoir une date de création.")]
+    #[Assert\DateTime(format: "Y-m-d H:i:s")]
+    private ?\DateTimeInterface $createdAt = null;
 
     public function getId(): ?int {
         return $this->id;
@@ -95,6 +102,18 @@ class Booklet {
 
     public function setStatus(bool $status): self {
         $this->status = $status;
+
+        return $this;
+    }
+
+    public function getCreatedAt(): ?\DateTimeInterface
+    {
+        return $this->createdAt;
+    }
+
+    public function setCreatedAt(\DateTimeInterface $createdAt): self
+    {
+        $this->createdAt = $createdAt;
 
         return $this;
     }

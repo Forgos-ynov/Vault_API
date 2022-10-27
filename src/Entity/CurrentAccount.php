@@ -5,6 +5,7 @@ namespace App\Entity;
 use App\Repository\CurrentAccountRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -38,6 +39,12 @@ class CurrentAccount {
     #[ORM\OneToMany(mappedBy: 'currentAccount', targetEntity: Booklet::class)]
     #[Groups(["getCurrentAccount"])]
     private Collection $booklets;
+
+    #[ORM\Column(type: Types::DATETIME_MUTABLE)]
+    #[Groups(["getBooklet", "getCurrentAccount"])]
+    #[Assert\NotNull(message: "Le compte courrant doit avoir une date de création.")]
+    #[Assert\DateTime(format: "Y-m-d H:i:s")]
+    private ?\DateTimeInterface $createdAt = null;
 
     public function __construct() {
         $this->booklets = new ArrayCollection();
@@ -100,6 +107,18 @@ class CurrentAccount {
                 $booklet->setCurrentAccount(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getCreatedAt(): ?\DateTimeInterface
+    {
+        return $this->createdAt;
+    }
+
+    public function setCreatedAt(\DateTimeInterface $createdAt): self
+    {
+        $this->createdAt = $createdAt;
 
         return $this;
     }

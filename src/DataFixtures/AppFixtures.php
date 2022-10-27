@@ -48,18 +48,20 @@ class AppFixtures extends Fixture {
             $userUser->setUsername($this->faker->userName() . "@" . $password);
             $userUser->setRoles(["ROLE_USER"]);
             $userUser->setPassword($this->userPasswordHasher->hashPassword($userUser, $password));
+            $userUser->setCreatedAt($this->faker->dateTimeBetween());
 
             $manager->persist($userUser);
         }
 
         for ($i=0; $i<1; $i++) {
-            $userUser = new User();
+            $userAdmin = new User();
             $password = $this->faker->password(2, 6);
-            $userUser->setUsername("admin");
-            $userUser->setRoles(["ROLE_ADMIN"]);
-            $userUser->setPassword($this->userPasswordHasher->hashPassword($userUser, "password"));
+            $userAdmin->setUsername("admin");
+            $userAdmin->setRoles(["ROLE_ADMIN"]);
+            $userAdmin->setPassword($this->userPasswordHasher->hashPassword($userAdmin, "password"));
+            $userAdmin->setCreatedAt($this->faker->dateTimeBetween());
 
-            $manager->persist($userUser);
+            $manager->persist($userAdmin);
         }
 
         $bkl_pr_array = [];
@@ -74,8 +76,9 @@ class AppFixtures extends Fixture {
         for ($i = 0; $i < 10; $i++) {
             $crt_acc = new CurrentAccount();
             $crt_acc->setName($this->faker->word());
-            $crt_acc->setMoney($this->faker->randomFloat(2));
+            $crt_acc->setMoney($this->faker->randomFloat(2, 0, 11632));
             $crt_acc->setStatus(rand(0, 1));
+            $crt_acc->setCreatedAt($this->faker->dateTimeBetween());
             $crt_acc_array[] = $crt_acc;
             $manager->persist($crt_acc);
         }
@@ -83,10 +86,11 @@ class AppFixtures extends Fixture {
         for ($i = 0; $i <= 60; $i++) {
             $bkl = new Booklet();
             $bkl->setName($this->faker->word());
-            $bkl->setMoney($this->faker->randomFloat(2));
+            $bkl->setMoney($this->faker->randomFloat(2, 0, 18432));
             $bkl->setBookletPercent($bkl_pr_array[array_rand($bkl_pr_array)]);
             $bkl->setCurrentAccount($crt_acc_array[array_rand($crt_acc_array)]);
             $bkl->setStatus(rand(0, 1));
+            $bkl->setCreatedAt($this->faker->dateTimeBetween());
             $manager->persist($bkl);
         }
 
