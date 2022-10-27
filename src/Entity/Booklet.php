@@ -21,7 +21,7 @@ class Booklet {
     #[Groups(["getBooklet", "getCurrentAccount"])]
     #[Assert\NotNull(message: "Un livret doit avoir un nom.")]
     #[Assert\Length(min: 2, max: 150, minMessage: "Le nom du livret doit comporter au moins {{ limit }} caractères.",
-                    maxMessage: "Le nom du livret doit contenir maximum {{ limit }} caractères.")]
+                   maxMessage: "Le nom du livret doit contenir maximum {{ limit }} caractères.")]
     private ?string $name = null;
 
     #[ORM\Column]
@@ -47,9 +47,8 @@ class Booklet {
     private ?bool $status = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
-    #[ORM\ManyToOne(inversedBy: 'booklets')]
+    #[Groups(["getBooklet"])]
     #[Assert\NotNull(message: "Le livret doit avoir une date de création.")]
-    #[Assert\DateTime(format: "Y-m-d H:i:s")]
     private ?\DateTimeInterface $createdAt = null;
 
     public function getId(): ?int {

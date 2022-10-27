@@ -39,6 +39,22 @@ class CurrentAccountRepository extends ServiceEntityRepository
         }
     }
 
+    public function findAllActivated() {
+        return $this->createQueryBuilder("ca")
+            ->andWhere("ca.status = 1")
+            ->getQuery()
+            ->getResult();
+    }
+
+    public function findActivated(CurrentAccount $currentAccount) {
+        return $this->createQueryBuilder("ca")
+            ->andWhere("ca.status = 1")
+            ->andWhere("ca.id = :idCurrentAccount")
+            ->setParameter("idCurrentAccount", $currentAccount->getId())
+            ->getQuery()
+            ->getResult();
+    }
+
 //    /**
 //     * @return CurrentAccount[] Returns an array of CurrentAccount objects
 //     */

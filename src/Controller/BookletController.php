@@ -18,6 +18,8 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use Symfony\Contracts\Cache\ItemInterface;
+use Symfony\Contracts\Cache\TagAwareCacheInterface;
 
 class BookletController extends GlobalAbstractController {
 
@@ -46,9 +48,21 @@ class BookletController extends GlobalAbstractController {
      * @return JsonResponse
      */
     #[Route('/api/booklets', name: 'booklets_get_all_booklets', methods: ["GET"])]
-    public function get_all_booklets(BookletRepository $bookletRepository): JsonResponse {
-        $booklets = $bookletRepository->findAll();
-        $jsonBooklets = $this->serializer->serialize($booklets, "json", $this->groupsGetBooklet);
+    public function get_all_booklets(Request $request,BookletRepository $bookletRepository,
+                                     TagAwareCacheInterface $cache): JsonResponse {
+//        $pages = $request->get("page", 1);
+//        $limit = $request->get("limit", 10);
+//        $booklets = $bookletRepository->findWithPagination($pages, $limit);
+
+        $serializer = $this->serializer;
+        $jsonBooklets = $cache->get(
+            "getAllBooklets",
+            function (ItemInterface $item) use ($bookletRepository, $serializer) {
+                $item->tag("bookletCache");
+                $booklets = $bookletRepository->findAllActivated();
+                return $serializer->serialize($booklets, "json", $this->groupsGetBooklet);
+            }
+        );
 
         return $this->jsonResponseOk($jsonBooklets);
     }
@@ -63,10 +77,14 @@ class BookletController extends GlobalAbstractController {
     #[Route('/api/booklets/{idBooklet}', name: 'booklets_get_booklet_by_id', methods: ["GET"])]
     #[ParamConverter("booklet", options: ["id" => "idBooklet"])]
     public function get_booklet_by_id(BookletRepository $bookletRepository, Booklet $booklet): JsonResponse {
-        $booklet_bdd = $bookletRepository->find($booklet);
-        $jsonBooklet = $this->serializer->serialize($booklet_bdd, "json", $this->groupsGetBooklet);
+        $booklet = $bookletRepository->findActivated($booklet);
 
-        return$this->jsonResponseOk($jsonBooklet);
+        if (sizeof($booklet) == 0){
+            return $this->jsonResponseNoContent();
+        }
+
+        $jsonBooklet = $this->serializer->serialize($booklet, "json", $this->groupsGetBooklet);
+        return $this->jsonResponseOk($jsonBooklet);
     }
 
     /**
@@ -75,24 +93,11 @@ class BookletController extends GlobalAbstractController {
      * @param Booklet $booklet
      * @return JsonResponse
      */
-    #[Route('/api/booklets/off/{idBooklet}', name: 'booklets_booklet_turn_off', methods: ["DELETE"])]
+    #[Route('/api/booklets/{idBooklet}', name: 'booklets_booklet_turn_off', methods: ["DELETE"])]
     #[ParamConverter("booklet", options: ["id" => "idBooklet"])]
-    public function booklet_turn_off(Booklet $booklet): JsonResponse {
+    public function booklet_turn_off(Booklet $booklet, TagAwareCacheInterface $cache): JsonResponse {
+        $cache->invalidateTags(["bookletCache"]);
         $booklet->setStatus(false);
-        $this->entityManager->flush();
-        return $this->jsonResponseNoContent();
-    }
-
-    /**
-     * Route permettant de d'activer un booklet
-     *
-     * @param Booklet $booklet
-     * @return JsonResponse
-     */
-    #[Route('/api/booklets/on/{idBooklet}', name: 'booklets_booklet_turn_on', methods: ["DELETE"])]
-    #[ParamConverter("booklet", options: ["id" => "idBooklet"])]
-    public function booklet_turn_on(Booklet $booklet): JsonResponse {
-        $booklet->setStatus(true);
         $this->entityManager->flush();
         return $this->jsonResponseNoContent();
     }
@@ -130,7 +135,10 @@ class BookletController extends GlobalAbstractController {
             "json"
         );
         $booklet->setStatus(True);
-
+        $today = new \DateTime();
+        $today->format("Y-m-d H:i:s");
+        //dd(new \DateTime($today->format("Y-m-d H:i:s")));
+        $booklet->setCreatedAt($today);
         $content = $request->toArray();
 
         $bookletPercent = $percentRepository->find($content["idBookletPercent"] ?? -1);

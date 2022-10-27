@@ -42,28 +42,6 @@ class AppFixtures extends Fixture {
      * @return void
      */
     public function load(ObjectManager $manager): void {
-        for ($i=0; $i<=10; $i++) {
-            $userUser = new User();
-            $password = $this->faker->password(2, 6);
-            $userUser->setUsername($this->faker->userName() . "@" . $password);
-            $userUser->setRoles(["ROLE_USER"]);
-            $userUser->setPassword($this->userPasswordHasher->hashPassword($userUser, $password));
-            $userUser->setCreatedAt($this->faker->dateTimeBetween());
-
-            $manager->persist($userUser);
-        }
-
-        for ($i=0; $i<1; $i++) {
-            $userAdmin = new User();
-            $password = $this->faker->password(2, 6);
-            $userAdmin->setUsername("admin");
-            $userAdmin->setRoles(["ROLE_ADMIN"]);
-            $userAdmin->setPassword($this->userPasswordHasher->hashPassword($userAdmin, "password"));
-            $userAdmin->setCreatedAt($this->faker->dateTimeBetween());
-
-            $manager->persist($userAdmin);
-        }
-
         $bkl_pr_array = [];
         for ($i = 0; $i <= 3; $i++) {
             $bkl_pr = new BookletPercent();
@@ -92,6 +70,29 @@ class AppFixtures extends Fixture {
             $bkl->setStatus(rand(0, 1));
             $bkl->setCreatedAt($this->faker->dateTimeBetween());
             $manager->persist($bkl);
+        }
+
+        for ($i=0; $i<=5; $i++) {
+            $userUser = new User();
+            $password = $this->faker->password(2, 6);
+            $userUser->setUsername($this->faker->userName() . "@" . $password);
+            $userUser->setRoles(["ROLE_USER"]);
+            $userUser->setPassword($this->userPasswordHasher->hashPassword($userUser, $password));
+            $userUser->setCreatedAt($this->faker->dateTimeBetween());
+            $userUser->setCurrentAccount($crt_acc_array[$i]);
+
+            $manager->persist($userUser);
+        }
+
+        for ($i=0; $i<1; $i++) {
+            $userAdmin = new User();
+            $userAdmin->setUsername("admin");
+            $userAdmin->setRoles(["ROLE_ADMIN"]);
+            $userAdmin->setPassword($this->userPasswordHasher->hashPassword($userAdmin, "password"));
+            $userAdmin->setCreatedAt($this->faker->dateTimeBetween());
+            $userAdmin->setCurrentAccount($crt_acc_array[9]);
+
+            $manager->persist($userAdmin);
         }
 
         $manager->flush();
