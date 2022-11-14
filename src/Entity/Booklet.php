@@ -5,10 +5,25 @@ namespace App\Entity;
 use App\Repository\BookletRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Serializer\Annotation\Groups;
+
+//use Symfony\Component\Serializer\Annotation\Groups;
+use JMS\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
+use Hateoas\Configuration\Annotation\Relation;
+use Hateoas\Configuration\Annotation\Route;
+use Hateoas\Configuration\Annotation\Exclusion;
+use OpenApi\Attributes as OA;
 
-
+/**
+ * @Relation(
+ *     "self",
+ *          href= @Route(
+ *              "booklets_get_booklet_by_id",
+ *              parameters = { "idBooklet" = "expr(object.getId())" }
+ *          ),
+ *          exclusion = @Exclusion(groups="getBooklet")
+ * )
+ */
 #[ORM\Entity(repositoryClass: BookletRepository::class)]
 class Booklet {
     #[ORM\Id]
@@ -20,8 +35,8 @@ class Booklet {
     #[ORM\Column(length: 255)]
     #[Groups(["getBooklet", "getCurrentAccount"])]
     #[Assert\NotNull(message: "Un livret doit avoir un nom.")]
-    #[Assert\Length(min: 2, max: 150, minMessage: "Le nom du livret doit comporter au moins {{ limit }} caractères.",
-                   maxMessage: "Le nom du livret doit contenir maximum {{ limit }} caractères.")]
+    #[Assert\Length(min: 2, max: 150, minMessage: "Le nom du livret doit comporter au moins {{ limit }} caractères.", maxMessage: "Le nom du livret doit contenir maximum {{ limit }} caractères.")]
+    #[OA\Property(type: "string")]
     private ?string $name = null;
 
     #[ORM\Column]
@@ -105,13 +120,11 @@ class Booklet {
         return $this;
     }
 
-    public function getCreatedAt(): ?\DateTimeInterface
-    {
+    public function getCreatedAt(): ?\DateTimeInterface {
         return $this->createdAt;
     }
 
-    public function setCreatedAt(\DateTimeInterface $createdAt): self
-    {
+    public function setCreatedAt(\DateTimeInterface $createdAt): self {
         $this->createdAt = $createdAt;
 
         return $this;
