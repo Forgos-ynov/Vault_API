@@ -2,9 +2,11 @@
 
 namespace App\Repository;
 
+use App\Controller\UserController;
 use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use phpDocumentor\Reflection\Types\Integer;
 use Symfony\Component\Security\Core\Exception\UnsupportedUserException;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\PasswordUpgraderInterface;
@@ -54,6 +56,24 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
         $user->setPassword($newHashedPassword);
 
         $this->add($user, true);
+    }
+
+    public function filter_money(User $user, int $minMoney, int $maxMoney = -1) {
+        if ($minMoney < 0) $minMoney = 0;
+        if ($maxMoney < 0) $minMoney = 0;
+
+
+
+
+    }
+
+    public function get_all_money_by_user(User $user) {
+        $currentAccount = $user->getCurrentAccount();
+        $money = $currentAccount->getMoney();
+        foreach ($currentAccount->getBooklets() as $booklet) {
+            $money = $money + $booklet->getMoney();
+        }
+        return $money;
     }
 
 //    /**

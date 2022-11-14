@@ -3,12 +3,17 @@
 namespace App\Controller;
 
 use App\Entity\Booklet;
+use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
-use Symfony\Component\Serializer\SerializerInterface;
+use JMS\Serializer\SerializerInterface;
+use JMS\Serializer\Serializer;
+use JMS\Serializer\SerializationContext;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use Symfony\Contracts\Cache\ItemInterface;
+use Symfony\Contracts\Cache\TagAwareCacheInterface;
 
 abstract class GlobalAbstractController extends AbstractController {
 
@@ -16,7 +21,7 @@ abstract class GlobalAbstractController extends AbstractController {
     private UrlGeneratorInterface $urlGenerator;
     private SerializerInterface $serializer;
 
-    var array $groupsGetBooklet = ["groups" => "getBooklet"];
+    var string $groupsGetBooklet = "getBooklet";
     var array $groupsGetCurrentAccount = ["groups" => "getCurrentAccount"];
 
     /**
@@ -38,7 +43,10 @@ abstract class GlobalAbstractController extends AbstractController {
      * @return string
      */
     public function urlGenerator_get_booklet_by_id(Booklet $booklet) :string {
-        return $this->urlGenerator->generate("booklets_get_booklet_by_id",  ["idBooklet" => $booklet->getId()]);
+        return $this->urlGenerator->generate(
+            "booklets_get_booklet_by_id",
+            ["idBooklet" => $booklet->getId()]
+        );
     }
 
     /**
@@ -94,5 +102,4 @@ abstract class GlobalAbstractController extends AbstractController {
         return new JsonResponse($this->serializer->serialize($errors, "json"),
             Response::HTTP_NOT_MODIFIED, [],  true);
     }
-
 }
