@@ -15,14 +15,14 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(["getBooklet", "getCurrentAccount"])]
+    #[Groups(["getBooklet", "getCurrentAccount", "getUser"])]
     private ?int $id = null;
 
     #[ORM\Column(length: 180, unique: true)]
     #[Assert\NotNull(message: "Un utilisateur doit avoir un nom.")]
     #[Assert\Length(min: 2, max: 180, minMessage: "Le nom d'un utilisateur doit contenir au moins {{ limit }} caractères",
                     maxMessage: "Le nom d'un utilisateur doit contenir maximum {{ limit }} caractères")]
-    #[Groups(["getBooklet", "getCurrentAccount"])]
+    #[Groups(["getBooklet", "getCurrentAccount", "getUser"])]
     private ?string $username = null;
 
     #[ORM\Column]
@@ -45,7 +45,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface {
     #[ORM\ManyToOne(inversedBy: 'users')]
     #[ORM\JoinColumn(nullable: false)]
     #[Assert\NotNull(message: "Un utilisateur doit avoir un compte courrant.")]
+    #[Groups(["getUser"])]
     private ?CurrentAccount $currentAccount = null;
+
+    #[ORM\Column]
+    private ?bool $status = null;
 
     public function getId(): ?int {
         return $this->id;
@@ -128,6 +132,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface {
     public function setCurrentAccount(?CurrentAccount $currentAccount): self
     {
         $this->currentAccount = $currentAccount;
+
+        return $this;
+    }
+
+    public function isStatus(): ?bool
+    {
+        return $this->status;
+    }
+
+    public function setStatus(bool $status): self
+    {
+        $this->status = $status;
 
         return $this;
     }

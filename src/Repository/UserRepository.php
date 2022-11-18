@@ -58,6 +58,22 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
         $this->add($user, true);
     }
 
+    public function findAllActivated() {
+        return $this->createQueryBuilder("b")
+            ->andWhere("b.status = 1")
+            ->getQuery()
+            ->getResult();
+    }
+
+    public function findActivated(User $user) {
+        return $this->createQueryBuilder("u")
+            ->andWhere("u.status = 1")
+            ->andWhere("u.id = :idUser")
+            ->setParameter("idUser", $user->getId())
+            ->getQuery()
+            ->getResult();
+    }
+
     public function filter_money(User $user, int $minMoney, int $maxMoney = -1) {
         if ($minMoney < 0) $minMoney = 0;
         if ($maxMoney < 0) $minMoney = 0;

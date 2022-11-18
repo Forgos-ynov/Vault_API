@@ -39,6 +39,22 @@ class BookletPercentRepository extends ServiceEntityRepository
         }
     }
 
+    public function findAllActivated() {
+        return $this->createQueryBuilder("bp")
+            ->andWhere("bp.status = 1")
+            ->getQuery()
+            ->getResult();
+    }
+
+    public function findActivated(BookletPercent $bookletPercent) {
+        return $this->createQueryBuilder("bp")
+            ->andWhere("bp.status = 1")
+            ->andWhere("bp.id = :idBookletPercent")
+            ->setParameter("idBookletPercent", $bookletPercent->getId())
+            ->getQuery()
+            ->getResult();
+    }
+
 //    /**
 //     * @return BookletPercent[] Returns an array of BookletPercent objects
 //     */
