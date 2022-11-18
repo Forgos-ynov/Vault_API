@@ -3,7 +3,9 @@
 namespace App\Controller;
 
 use App\Entity\Booklet;
+use App\Entity\BookletPercent;
 use App\Entity\CurrentAccount;
+use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -52,6 +54,28 @@ abstract class GlobalAbstractController extends AbstractController
         return $this->urlGenerator->generate(
             "booklets_get_booklet_by_id",
             ["idBooklet" => $booklet->getId()]
+        );
+    }
+
+    public function urlGenerator_get_booklet_percent_by_id(BookletPercent $bookletPercent): string
+    {
+        return $this->urlGenerator->generate(
+            "booklet_percents_get_booklet_percent_by_id",
+            ["idBookletPercent" => $bookletPercent->getId()]
+        );
+    }
+
+    /**
+     * Retourne l'url de localisation du user entré en paramètre
+     *
+     * @param User $user
+     * @return string
+     */
+    public function urlGenerator_get_user_by_id(User $user): string
+    {
+        return $this->urlGenerator->generate(
+            "users_get_user_by_id",
+            ["idUser" => $user->getId()]
         );
     }
 
