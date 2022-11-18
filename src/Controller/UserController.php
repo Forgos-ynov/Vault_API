@@ -7,6 +7,7 @@ use App\Repository\CurrentAccountRepository;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use JMS\Serializer\SerializationContext;
+use phpDocumentor\Reflection\Types\Integer;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\ParamConverter;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -170,6 +171,28 @@ class UserController extends GlobalAbstractController
         $jsonUser = $this->serializer->serialize($user, "json", $context);
         $location = $this->urlGenerator_get_user_by_id($user);
         return $this->jsonResponseCreated($jsonUser, ["location" => $location]);
+    }
+
+    #[Route('/api/users/filterMoney/{miniMoney}', name: 'users_get_users_have_more_x_money_in_total', methods: ["GET"])]
+    #[ParamConverter("miniMoney", options: ["id" => "miniMoney"])]
+    public function get_users_have_more_x_money_in_total(String $miniMoney): JsonResponse
+    {
+        $miniMoney = (int) $miniMoney;
+
+        $users = $this->userRepository->findAllActivated();
+
+        $usersReturn = [];
+        foreach ($users as $user) {
+            $allMoneyUser = $this->userRepository->get_all_money_one_user($user->getId());
+            if ($allMoneyUser[0]["totalMoney"] >= $miniMoney){
+                $usersReturn[] = $user;
+            }
+        }
+
+        $context = SerializationContext::create()->setGroups($this->groupsGetUser);
+        $jsonUsers = $this->serializer->serialize($usersReturn, "json", $context);
+        return $this->jsonResponseOk($jsonUsers);
+
     }
 
     /**
