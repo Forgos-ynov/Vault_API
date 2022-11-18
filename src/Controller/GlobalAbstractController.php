@@ -116,6 +116,16 @@ abstract class GlobalAbstractController extends AbstractController
     }
 
     /**
+     * FOnction permettant de ressortir un json response de status Not acceptable
+     *
+     * @return JsonResponse
+     */
+    public function jsonResponseNotAcceptable(): JsonResponse
+    {
+        return new JsonResponse(null, Response::HTTP_NOT_ACCEPTABLE);
+    }
+
+    /**
      * Fonction permettant de ressortir un JsonResponse de status OK en prenant en paramètre les data et le headers
      *
      * @param $data

@@ -142,7 +142,6 @@ class CurrentAccountController extends GlobalAbstractController
 
     #[Route('/api/currentAccounts/{idCurrentAccount}', name: 'currentAccounts_update_current_account', methods: ["PUT"])]
     #[ParamConverter("account", options: ["id" => "idCurrentAccount"])]
-    #[IsGranted("ROLE_ADMIN", message: "Vous n'avez rien à faire avec cette route.")]
     public function update_current_account(Request $request, CurrentAccount $account, TagAwareCacheInterface $cache, BookletRepository $bookletRepository, UserRepository $userRepository): JsonResponse
     {
         $updateAccount = $this->serializer->deserialize($request->getContent(), CurrentAccount::class, "json");
@@ -165,6 +164,39 @@ class CurrentAccountController extends GlobalAbstractController
         $jsonCurrentAccount = $this->serializer->serialize($account, "json", $context);
         $location = $this->urlGenerator_get_current_account_by_id($account);
         return $this->jsonResponseCreated($jsonCurrentAccount, ["location" => $location]);
+    }
+
+    #[Route('/api/currentAccounts/transaction/{idAccountSender}/to/{idAccountReceive}', name: 'currentAccounts_transaction_current_account', methods: ["PUT"])]
+    #[ParamConverter("accountSender", options: ["id" => "idAccountSender"])]
+    #[ParamConverter("accountReceive", options: ["id" => "idAccountReceive"])]
+    public function transaction_current_account(Request $request, CurrentAccount $accountSender, CurrentAccount $accountReceive, TagAwareCacheInterface $cache): JsonResponse
+    {
+        $content = $request->toArray();
+        $montantTransfert = $content["montantTransfert"];
+        if($accountSender->getMoney() >= $montantTransfert){
+            $accountSender->setMoney($accountSender->getMoney() - $montantTransfert);
+            $accountReceive->setMoney($accountReceive->getMoney() + $montantTransfert);
+        } else {
+            return $this->jsonResponseNotAcceptable();
+        }
+
+        if ($this->validatorError($accountSender)) {
+            return $this->jsonResponseValidatorError($accountSender);
+        }
+
+        if ($this->validatorError($accountReceive)) {
+            return $this->jsonResponseValidatorError($accountReceive);
+        }
+
+        $this->invalideCacheCurrentAccount($cache);
+
+        $this->entityManager->persist($accountSender);
+        $this->entityManager->flush();
+
+        $this->entityManager->persist($accountReceive);
+        $this->entityManager->flush();
+
+        return $this->jsonResponseNoContent();
     }
 
     /**

@@ -138,6 +138,16 @@ class UserController extends GlobalAbstractController
         return $this->jsonResponseCreated($jsonUser, ["location" => $location]);
     }
 
+    /**
+     * Route permettant de mettre à jour un utilisateur
+     *
+     * @param Request $request
+     * @param TagAwareCacheInterface $cache
+     * @param User $user
+     * @param CurrentAccountRepository $accountRepository
+     * @return JsonResponse
+     * @throws \Psr\Cache\InvalidArgumentException
+     */
     #[Route('/api/users/{idUser}', name: 'users_update_user', methods: ["PUT"])]
     #[ParamConverter("user", options: ["id" => "idUser"])]
     public function update_user(Request $request, TagAwareCacheInterface $cache, User $user, CurrentAccountRepository $accountRepository): JsonResponse
