@@ -15,16 +15,20 @@ class BookletPercent {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(["getBooklet", "getCurrentAccount"])]
+    #[Groups(["getBooklet", "getCurrentAccount", "getUser", "getBookletPercent"])]
     private ?int $id = null;
 
     #[ORM\Column]
-    #[Groups(["getBooklet", "getCurrentAccount"])]
+    #[Groups(["getBooklet", "getCurrentAccount", "getUser", "getBookletPercent"])]
     #[Assert\NotNull(message: "Un pourcentage de livret doit contenir un pourcentage.")]
     private ?float $percent = null;
 
     #[ORM\OneToMany(mappedBy: 'bookletAccount', targetEntity: Booklet::class)]
     private Collection $booklets;
+
+    #[ORM\Column]
+    #[Assert\NotNull(message: "Le livret de pourcentage doit avoir un statut.")]
+    private ?bool $status = null;
 
     public function __construct() {
         $this->booklets = new ArrayCollection();
@@ -67,6 +71,18 @@ class BookletPercent {
                 $booklet->setBookletPercent(null);
             }
         }
+
+        return $this;
+    }
+
+    public function isStatus(): ?bool
+    {
+        return $this->status;
+    }
+
+    public function setStatus(bool $status): self
+    {
+        $this->status = $status;
 
         return $this;
     }

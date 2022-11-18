@@ -46,6 +46,7 @@ class AppFixtures extends Fixture {
         for ($i = 0; $i <= 3; $i++) {
             $bkl_pr = new BookletPercent();
             $bkl_pr->setPercent($this->faker->randomFloat(2, 0, 3));
+            $bkl_pr->setStatus(rand(0, 1));
             $bkl_pr_array[] = $bkl_pr;
             $manager->persist($bkl_pr);
         }
@@ -80,6 +81,7 @@ class AppFixtures extends Fixture {
             $userUser->setPassword($this->userPasswordHasher->hashPassword($userUser, $password));
             $userUser->setCreatedAt($this->faker->dateTimeBetween());
             $userUser->setCurrentAccount($crt_acc_array[$i]);
+            $userUser->setStatus(1);
 
             $manager->persist($userUser);
         }
@@ -91,6 +93,7 @@ class AppFixtures extends Fixture {
             $userAdmin->setPassword($this->userPasswordHasher->hashPassword($userAdmin, "password"));
             $userAdmin->setCreatedAt($this->faker->dateTimeBetween());
             $userAdmin->setCurrentAccount($crt_acc_array[9]);
+            $userAdmin->setStatus(1);
 
             $manager->persist($userAdmin);
         }

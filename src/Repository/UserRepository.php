@@ -58,22 +58,42 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
         $this->add($user, true);
     }
 
-    public function filter_money(User $user, int $minMoney, int $maxMoney = -1) {
-        if ($minMoney < 0) $minMoney = 0;
-        if ($maxMoney < 0) $minMoney = 0;
-
-
-
-
+    public function findAllActivated() {
+        return $this->createQueryBuilder("b")
+            ->andWhere("b.status = 1")
+            ->getQuery()
+            ->getResult();
     }
 
-    public function get_all_money_by_user(User $user) {
-        $currentAccount = $user->getCurrentAccount();
-        $money = $currentAccount->getMoney();
-        foreach ($currentAccount->getBooklets() as $booklet) {
-            $money = $money + $booklet->getMoney();
-        }
-        return $money;
+    public function findActivated(User $user) {
+        return $this->createQueryBuilder("u")
+            ->andWhere("u.status = 1")
+            ->andWhere("u.id = :idUser")
+            ->setParameter("idUser", $user->getId())
+            ->getQuery()
+            ->getResult();
+    }
+
+    public function get_all_money_one_user(int $userId) {
+        $connection = $this->getEntityManager()->getConnection();
+
+        $sql = "
+            SELECT SUM(
+                    (
+                        SELECT SUM(booklet.money) FROM booklet WHERE current_account_id = (
+                            SELECT id FROM current_account WHERE current_account.id = (
+                                SELECT user.current_account_id FROM `user` WHERE user.id = :userId
+                            )
+                        )
+                    ) + current_account.money
+                ) AS totalMoney FROM current_account WHERE current_account.id = (SELECT user.current_account_id FROM `user` WHERE user.id = :userId)
+        ";
+
+        $request = $connection->prepare($sql);
+        $result = $request->executeQuery(["userId" => $userId]);
+
+        return $result->fetchAllAssociative();
+
     }
 
 //    /**

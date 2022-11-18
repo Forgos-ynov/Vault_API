@@ -25,10 +25,12 @@ use JMS\Serializer\SerializerInterface;
 use JMS\Serializer\Serializer;
 use JMS\Serializer\SerializationContext;
 
-class BookletController extends GlobalAbstractController {
+class BookletController extends GlobalAbstractController
+{
 
     private EntityManagerInterface $entityManager;
     private SerializerInterface $serializer;
+    private BookletRepository $bookletRepository;
 
     /**
      * Constructeur de mon controlleur de booklet
@@ -37,33 +39,29 @@ class BookletController extends GlobalAbstractController {
      * @param ValidatorInterface $validator
      * @param UrlGeneratorInterface $urlGenerator
      * @param SerializerInterface $serializer
+     * @param BookletRepository $bookletRepository
      */
-    public function __construct(EntityManagerInterface $entityManager, ValidatorInterface $validator, UrlGeneratorInterface $urlGenerator, SerializerInterface $serializer) {
+    public function __construct(EntityManagerInterface $entityManager, ValidatorInterface $validator,
+                                UrlGeneratorInterface $urlGenerator, SerializerInterface $serializer,
+                                BookletRepository $bookletRepository)
+    {
         parent::__construct($validator, $urlGenerator, $serializer);
         $this->entityManager = $entityManager;
         $this->serializer = $serializer;
+        $this->bookletRepository = $bookletRepository;
     }
-
-    /* #[Route('api/tests', name:"test.alexandre", methods: ["GET"])]
-     public function getTests(EntityManagerInterface $em, CurrentAccountRepository $cRep)
-     {
-         dd($cRep->getAcountByMoney($em, 0, 10000000));
-         die();
-     }*/
-
 
     /**
      * Route permettant de récupérer tous les booklets
      *
-     * @param Request $request
-     * @param BookletRepository $bookletRepository
      * @param TagAwareCacheInterface $cache
      * @return JsonResponse
      * @throws InvalidArgumentException
      */
     #[Route('/api/booklets', name: 'booklets_get_all_booklets', methods: ["GET"])]
-    public function get_all_booklets(BookletRepository $bookletRepository, TagAwareCacheInterface $cache): JsonResponse {
-        $jsonBooklets = $this->cachingAllBooklets($cache, $bookletRepository, $this->groupsGetBooklet, $this->serializer, "getAllBooklets");
+    public function get_all_booklets(TagAwareCacheInterface $cache): JsonResponse
+    {
+        $jsonBooklets = $this->cachingAllBooklets($cache, "getAllBooklets");
 
         return $this->jsonResponseOk($jsonBooklets);
     }
@@ -79,7 +77,8 @@ class BookletController extends GlobalAbstractController {
      */
     #[Route('/api/booklets/{idBooklet}', name: 'booklets_get_booklet_by_id', methods: ["GET"])]
     #[ParamConverter("booklet", options: ["id" => "idBooklet"])]
-    public function get_booklet_by_id(BookletRepository $bookletRepository, Booklet $booklet, TagAwareCacheInterface $cache): JsonResponse {
+    public function get_booklet_by_id(BookletRepository $bookletRepository, Booklet $booklet, TagAwareCacheInterface $cache): JsonResponse
+    {
         $booklet = $bookletRepository->findActivated($booklet);
 
         if (sizeof($booklet) == 0) {
@@ -87,7 +86,7 @@ class BookletController extends GlobalAbstractController {
         }
         $bookletData = $booklet[0];
 
-        $jsonBooklet = $this->cachingOneBooklet($cache, $bookletRepository, $this->groupsGetBooklet, $this->serializer, "getBooklet", $bookletData);
+        $jsonBooklet = $this->cachingOneBooklet($cache, "getBookletId", $bookletData);
         return $this->jsonResponseOk($jsonBooklet);
     }
 
@@ -100,9 +99,11 @@ class BookletController extends GlobalAbstractController {
      * @throws InvalidArgumentException
      */
     #[Route('/api/booklets/{idBooklet}', name: 'booklets_booklet_turn_off', methods: ["DELETE"])]
+    #[IsGranted("ROLE_ADMIN", message: "Vous n'avez rien à faire avec cette route.")]
     #[ParamConverter("booklet", options: ["id" => "idBooklet"])]
-    public function booklet_turn_off(Booklet $booklet, TagAwareCacheInterface $cache): JsonResponse {
-        $cache->invalidateTags(["bookletCache"]);
+    public function booklet_turn_off(Booklet $booklet, TagAwareCacheInterface $cache): JsonResponse
+    {
+        $this->invalideCacheBooklet($cache);
         $booklet->setStatus(false);
         $this->entityManager->flush();
         return $this->jsonResponseNoContent();
@@ -115,14 +116,14 @@ class BookletController extends GlobalAbstractController {
      * @return JsonResponse
      */
     #[Route('', name: 'booklets_delete_booklet', methods: ["DELETE"])]
+    #[IsGranted("ROLE_ADMI", message: "Vous n'avez rien à faire avec cette route.")]
     #[ParamConverter("booklet", options: ["id" => "idBooklet"])]
-    public function delete_booklet(Booklet $booklet): JsonResponse {
+    public function delete_booklet(Booklet $booklet): JsonResponse
+    {
         $this->entityManager->remove($booklet);
         $this->entityManager->flush();
         return $this->jsonResponseNoContent();
     }
-
-    /*-----------------------------------------Check OK up here-------------------------------------------------------*/
 
     /**
      * Route permettant de créer un booklet
@@ -130,11 +131,14 @@ class BookletController extends GlobalAbstractController {
      * @param Request $request
      * @param BookletPercentRepository $percentRepository
      * @param CurrentAccountRepository $accountRepository
+     * @param TagAwareCacheInterface $cache
      * @return JsonResponse
+     * @throws InvalidArgumentException
      */
     #[Route('/api/booklets', name: 'booklets_delete_booklet', methods: ["POST"])]
     #[IsGranted("ROLE_ADMIN", message: "Vous n'avez rien à faire avec cette route.")]
-    public function create_booklet(Request $request, BookletPercentRepository $percentRepository, CurrentAccountRepository $accountRepository): JsonResponse {
+    public function create_booklet(Request $request, BookletPercentRepository $percentRepository, CurrentAccountRepository $accountRepository, TagAwareCacheInterface $cache): JsonResponse
+    {
         $booklet = $this->serializer->deserialize($request->getContent(), Booklet::class, "json");
         $booklet->setStatus(True);
         $today = new \DateTime();
@@ -151,10 +155,12 @@ class BookletController extends GlobalAbstractController {
             return $this->jsonResponseValidatorError($booklet);
         }
 
+        $this->invalideCacheBooklet($cache);
+
         $this->entityManager->persist($booklet);
         $this->entityManager->flush();
 
-        $context = SerializationContext::create()->setGroups(["getBooklet"]);
+        $context = SerializationContext::create()->setGroups([$this->groupsGetBooklet]);
         $jsonBooklet = $this->serializer->serialize($booklet, "json", $context);
         $location = $this->urlGenerator_get_booklet_by_id($booklet);
         return $this->jsonResponseCreated($jsonBooklet, ["location" => $location]);
@@ -166,30 +172,33 @@ class BookletController extends GlobalAbstractController {
      * @param Request $request
      * @param Booklet $booklet
      * @param BookletPercentRepository $percentRepository
+     * @param CurrentAccountRepository $currentAccountRepository
+     * @param TagAwareCacheInterface $cache
      * @return JsonResponse
+     * @throws InvalidArgumentException
      */
     #[Route('/api/booklets/{idBooklet}', name: 'booklets_update_booklet', methods: ["PUT"])]
     #[ParamConverter("booklet", options: ["id" => "idBooklet"])]
-    public function update_booklet(Request $request, Booklet $booklet, BookletPercentRepository $percentRepository): JsonResponse {
+    public function update_booklet(Request $request, Booklet $booklet, BookletPercentRepository $percentRepository, CurrentAccountRepository $currentAccountRepository, TagAwareCacheInterface $cache): JsonResponse
+    {
         $updateBooklet = $this->serializer->deserialize($request->getContent(), Booklet::class, "json");
         $content = $request->toArray();
-        $updateBooklet->setName($updateBooklet->getName() ?? $booklet->getName());
-        $updateBooklet->setStatus(true);
+        $booklet = $this->loadBookletData($updateBooklet, $booklet);
+        $booklet = $this->setBookletPercent($percentRepository, $content, $booklet);
+        $booklet = $this->setCurrentAccount($currentAccountRepository, $content, $booklet);
 
-        $content = $request->toArray();
-        $bookletPercent = $percentRepository->find($content["idBookletPercent"] ?? -1);
-        $updateBooklet->setBookletPercent($bookletPercent);
-
-        if ($this->validatorError($updateBooklet)) {
-            return $this->jsonResponseValidatorError($updateBooklet);
+        if ($this->validatorError($booklet)) {
+            return $this->jsonResponseValidatorError($booklet);
         }
 
-        $this->entityManager->persist($updateBooklet);
+        $this->invalideCacheBooklet($cache);
+
+        $this->entityManager->persist($booklet);
         $this->entityManager->flush();
 
-        $context = SerializationContext::create()->setGroups(["getBooklet"]);
-        $jsonBooklet = $this->serializer->serialize($updateBooklet, "json", $context);
-        $location = $this->urlGenerator_get_booklet_by_id($updateBooklet);
+        $context = SerializationContext::create()->setGroups([$this->groupsGetBooklet]);
+        $jsonBooklet = $this->serializer->serialize($booklet, "json", $context);
+        $location = $this->urlGenerator_get_booklet_by_id($booklet);
         return $this->jsonResponseCreated($jsonBooklet, ["location" => $location]);
     }
 
@@ -197,22 +206,20 @@ class BookletController extends GlobalAbstractController {
      * Fonction permettant de récupérer le cache de tous les booklets et si il n'existe pas / est invalide de le créer
      *
      * @param TagAwareCacheInterface $cache
-     * @param BookletRepository $repository
-     * @param string $groups
-     * @param SerializerInterface $serializer
      * @param string $cacheKey
      * @return string
      * @throws \Psr\Cache\InvalidArgumentException
      */
-    public function cachingAllBooklets(TagAwareCacheInterface $cache, BookletRepository $repository, string $groups,
-                            SerializerInterface $serializer, string $cacheKey) :string{
+    private function cachingAllBooklets(TagAwareCacheInterface $cache, string $cacheKey): string
+    {
         return $cache->get(
             $cacheKey,
-            function (ItemInterface $item) use ($repository, $serializer, $groups) {
+            function (ItemInterface $item) {
+                echo("Mise en cache.\n");
                 $item->tag("bookletCache");
-                $repositoryResults = $repository->findAllActivated();
-                $context = SerializationContext::create()->setGroups([$groups]);
-                return $serializer->serialize($repositoryResults, "json", $context);
+                $repositoryResults = $this->bookletRepository->findAllActivated();
+                $context = SerializationContext::create()->setGroups([$this->groupsGetBooklet]);
+                return $this->serializer->serialize($repositoryResults, "json", $context);
             }
         );
     }
@@ -221,24 +228,80 @@ class BookletController extends GlobalAbstractController {
      * Fonction permettant de récupérer le cache d'un booklet et si il n'existe pas / est invalide de le créer
      *
      * @param TagAwareCacheInterface $cache
-     * @param BookletRepository $repository
-     * @param string $groups
-     * @param SerializerInterface $serializer
      * @param string $cacheKey
      * @param Booklet $booklet
      * @return string
      * @throws InvalidArgumentException
      */
-    public function cachingOneBooklet(TagAwareCacheInterface $cache, BookletRepository $repository, string $groups,
-                            SerializerInterface $serializer, string $cacheKey, Booklet $booklet) :string{
+    private function cachingOneBooklet(TagAwareCacheInterface $cache, string $cacheKey, Booklet $booklet): string
+    {
         return $cache->get(
-            $cacheKey,
-            function (ItemInterface $item) use ($repository, $serializer, $groups, $booklet) {
+            $cacheKey . $booklet->getId(),
+            function (ItemInterface $item) use ($booklet) {
+                echo("Mise en cache.\n");
                 $item->tag("bookletCache");
-                $repositoryResults = $repository->findActivated($booklet);
-                $context = SerializationContext::create()->setGroups([$groups]);
-                return $serializer->serialize($repositoryResults, "json", $context);
+                $repositoryResults = $this->bookletRepository->findActivated($booklet);
+                $context = SerializationContext::create()->setGroups([$this->groupsGetBooklet]);
+                return $this->serializer->serialize($repositoryResults, "json", $context);
             }
         );
+    }
+
+    /**
+     * Fonction permettant d'invalider le cache de Tag bookletCache
+     *
+     * @param TagAwareCacheInterface $cache
+     * @return void
+     * @throws InvalidArgumentException
+     */
+    private function invalideCacheBooklet(TagAwareCacheInterface $cache): void
+    {
+        $cache->invalidateTags(["bookletCache"]);
+    }
+
+    /**
+     * Fonction permettant de charger les donné modifiée dans update booklet sinon elle mets les données de base de booklet
+     *
+     * @param Booklet $updateBooklet
+     * @param Booklet $booklet
+     * @return Booklet
+     */
+    private function loadBookletData(Booklet $updateBooklet, Booklet $booklet): Booklet
+    {
+        $booklet->setName($updateBooklet->getName() ?? $booklet->getName());
+        $booklet->setMoney($updateBooklet->getMoney() ?? $booklet->getMoney());
+        $booklet->setCreatedAt($booklet->getCreatedAt());
+
+        return $booklet;
+    }
+
+    /**
+     * Fonction permettant d'initialiser dans updateBooklet le idBookletPercent passé dans le content sinon ce sera celle de booklet
+     *
+     * @param BookletPercentRepository $percentRepository
+     * @param array $content
+     * @param Booklet $booklet
+     * @return Booklet
+     */
+    private function setBookletPercent(BookletPercentRepository $percentRepository, array $content, Booklet $booklet): Booklet
+    {
+        $bookletPercent = $percentRepository->find($content["idBookletPercent"] ?? $booklet->getBookletPercent()->getId());
+        $booklet->setBookletPercent($bookletPercent);
+        return $booklet;
+    }
+
+    /**
+     * Fonction permettant d'initialiser dans updateBooklet le idCurrentAccount passé dans le content sinon ce sera celle de booklet
+     *
+     * @param CurrentAccountRepository $currentAccountRepository
+     * @param array $content
+     * @param Booklet $booklet
+     * @return Booklet
+     */
+    private function setCurrentAccount(CurrentAccountRepository $currentAccountRepository, array $content, Booklet $booklet): Booklet
+    {
+        $currentAccount = $currentAccountRepository->find($content["idCurrentAccount"] ?? $booklet->getCurrentAccount()->getId());
+        $booklet->setCurrentAccount($currentAccount);
+        return $booklet;
     }
 }

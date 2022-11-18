@@ -10,17 +10,16 @@ use Doctrine\ORM\Mapping as ORM;
 //use Symfony\Component\Serializer\Annotation\Groups;
 use JMS\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
-
 #[ORM\Entity(repositoryClass: CurrentAccountRepository::class)]
 class CurrentAccount {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(["getBooklet", "getCurrentAccount"])]
+    #[Groups(["getBooklet", "getCurrentAccount", "getUser"])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(["getBooklet", "getCurrentAccount"])]
+    #[Groups(["getBooklet", "getCurrentAccount", "getUser"])]
     #[Assert\NotNull(message: "Un compte courrant doit avoir un nom.")]
     #[Assert\Length(min: 2, max: 255,
                     minMessage: "Le nom du compte courrant doit comporter au moins {{ limit }} caractères.",
@@ -28,7 +27,7 @@ class CurrentAccount {
     private ?string $name = null;
 
     #[ORM\Column]
-    #[Groups(["getBooklet", "getCurrentAccount"])]
+    #[Groups(["getBooklet", "getCurrentAccount", "getUser"])]
     #[Assert\NotNull(message: "Un compte courrant doit avoir de l'argent.")]
     #[Assert\PositiveOrZero(message: "Un compte courrant doit contenir un nombre d'argent positif (ou égal à zéro).")]
     private ?float $money = null;
@@ -38,7 +37,7 @@ class CurrentAccount {
     private ?bool $status = null;
 
     #[ORM\OneToMany(mappedBy: 'currentAccount', targetEntity: Booklet::class)]
-    #[Groups(["getCurrentAccount"])]
+    #[Groups(["getCurrentAccount", "getUser"])]
     private Collection $booklets;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
@@ -50,11 +49,12 @@ class CurrentAccount {
     #[Groups(["getBooklet", "getCurrentAccount"])]
     #[Assert\NotNull(message: "Le compte courrant doit avoir un utilisateur.")]
     #[Assert\Type(User::class)]
-    private Collection $users;
+    private ?Collection $users = null;
 
     public function __construct() {
-        $this->booklets = new ArrayCollection();
-        $this->users = new ArrayCollection();
+        var_dump('TU');
+        $this->booklets = new Doctrine\Common\Collections\ArrayCollection();
+        $this->users = new Doctrine\Common\Collections\ArrayCollection();
     }
 
     public function getId(): ?int {
@@ -98,8 +98,8 @@ class CurrentAccount {
         return $this->booklets;
     }
 
-    public function addBooklet(Booklet $booklet): self {
-        if (!$this->booklets->contains($booklet)) {
+    public function addBooklet(?Booklet $booklet): self {
+        if (!is_null($booklet) && !$this->booklets->contains($booklet)) {
             $this->booklets->add($booklet);
             $booklet->setCurrentAccount($this);
         }
@@ -138,9 +138,12 @@ class CurrentAccount {
         return $this->users;
     }
 
-    public function addUser(User $user): self
+    public function addUser(?User $user): self
     {
-        if (!$this->users->contains($user)) {
+        if(is_null($this->users)){
+            $this->users = new ArrayCollection();
+        }
+        if ( $this->users === null || !$this->users->contains($user)) {
             $this->users->add($user);
             $user->setCurrentAccount($this);
         }

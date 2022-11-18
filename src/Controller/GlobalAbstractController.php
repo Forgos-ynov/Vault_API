@@ -3,6 +3,9 @@
 namespace App\Controller;
 
 use App\Entity\Booklet;
+use App\Entity\BookletPercent;
+use App\Entity\CurrentAccount;
+use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -15,22 +18,26 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
 
-abstract class GlobalAbstractController extends AbstractController {
+abstract class GlobalAbstractController extends AbstractController
+{
 
     private ValidatorInterface $validator;
     private UrlGeneratorInterface $urlGenerator;
     private SerializerInterface $serializer;
 
     var string $groupsGetBooklet = "getBooklet";
-    var array $groupsGetCurrentAccount = ["groups" => "getCurrentAccount"];
+    var string $groupsGetCurrentAccount = "getCurrentAccount";
+    var string $groupsGetUser = "getUser";
+    var string $groupsGetBookletPercent = "getBookletPercent";
 
     /**
      * @param ValidatorInterface $validator
      * @param UrlGeneratorInterface $urlGenerator
      * @param SerializerInterface $serializer
      */
-    public function __construct(ValidatorInterface $validator, UrlGeneratorInterface $urlGenerator,
-                                SerializerInterface $serializer) {
+    public function __construct(ValidatorInterface  $validator, UrlGeneratorInterface $urlGenerator,
+                                SerializerInterface $serializer)
+    {
         $this->validator = $validator;
         $this->urlGenerator = $urlGenerator;
         $this->serializer = $serializer;
@@ -42,10 +49,47 @@ abstract class GlobalAbstractController extends AbstractController {
      * @param Booklet $booklet
      * @return string
      */
-    public function urlGenerator_get_booklet_by_id(Booklet $booklet) :string {
+    public function urlGenerator_get_booklet_by_id(Booklet $booklet): string
+    {
         return $this->urlGenerator->generate(
             "booklets_get_booklet_by_id",
             ["idBooklet" => $booklet->getId()]
+        );
+    }
+
+    public function urlGenerator_get_booklet_percent_by_id(BookletPercent $bookletPercent): string
+    {
+        return $this->urlGenerator->generate(
+            "booklet_percents_get_booklet_percent_by_id",
+            ["idBookletPercent" => $bookletPercent->getId()]
+        );
+    }
+
+    /**
+     * Retourne l'url de localisation du user entré en paramètre
+     *
+     * @param User $user
+     * @return string
+     */
+    public function urlGenerator_get_user_by_id(User $user): string
+    {
+        return $this->urlGenerator->generate(
+            "users_get_user_by_id",
+            ["idUser" => $user->getId()]
+        );
+    }
+
+    /**
+     * Retourne l'url de localisation du current account entré en paramètre
+     *
+     * @param CurrentAccount $account
+     * @return string
+     */
+    public function urlGenerator_get_current_account_by_id(CurrentAccount $account): string
+    {
+        return $this->urlGenerator->generate(
+            "currentAccounts_get_current_account_by_id",
+            ["idCurrentAccount" => $account->getId()]
         );
     }
 
@@ -56,7 +100,8 @@ abstract class GlobalAbstractController extends AbstractController {
      * @param $headers
      * @return JsonResponse
      */
-    public function jsonResponseCreated($data, $headers) :JsonResponse {
+    public function jsonResponseCreated($data, $headers): JsonResponse
+    {
         return new JsonResponse($data, Response::HTTP_CREATED, $headers, true);
     }
 
@@ -65,8 +110,19 @@ abstract class GlobalAbstractController extends AbstractController {
      *
      * @return JsonResponse
      */
-    public function jsonResponseNoContent() :JsonResponse {
+    public function jsonResponseNoContent(): JsonResponse
+    {
         return new JsonResponse(null, Response::HTTP_NO_CONTENT);
+    }
+
+    /**
+     * FOnction permettant de ressortir un json response de status Not acceptable
+     *
+     * @return JsonResponse
+     */
+    public function jsonResponseNotAcceptable(): JsonResponse
+    {
+        return new JsonResponse(null, Response::HTTP_NOT_ACCEPTABLE);
     }
 
     /**
@@ -76,7 +132,8 @@ abstract class GlobalAbstractController extends AbstractController {
      * @param array $headers
      * @return JsonResponse
      */
-    public function jsonResponseOk($data, array $headers = []) :JsonResponse {
+    public function jsonResponseOk($data, array $headers = []): JsonResponse
+    {
         return new JsonResponse($data, Response::HTTP_OK, $headers, true);
     }
 
@@ -86,7 +143,8 @@ abstract class GlobalAbstractController extends AbstractController {
      * @param $object
      * @return integer
      */
-    public function validatorError($object): int {
+    public function validatorError($object): int
+    {
         $errors = $this->validator->validate($object);
         return $errors->count();
     }
@@ -97,9 +155,17 @@ abstract class GlobalAbstractController extends AbstractController {
      * @param $object
      * @return JsonResponse
      */
-    public function jsonResponseValidatorError($object) :JsonResponse {
+    public function jsonResponseValidatorError($object): JsonResponse
+    {
         $errors = $this->validator->validate($object);
+        dd($errors);
         return new JsonResponse($this->serializer->serialize($errors, "json"),
-            Response::HTTP_NOT_MODIFIED, [],  true);
+            Response::HTTP_NOT_MODIFIED, [], true);
+    }
+
+    public function jsonResponseUnauthorized(): JsonResponse
+    {
+        return new JsonResponse($this->serializer->serialize("Vous n'êtes pas connectés", "json"),
+            Response::HTTP_UNAUTHORIZED, [], true);
     }
 }
