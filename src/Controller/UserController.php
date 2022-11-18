@@ -173,6 +173,12 @@ class UserController extends GlobalAbstractController
         return $this->jsonResponseCreated($jsonUser, ["location" => $location]);
     }
 
+    /**
+     * Route permettant de récupérer tous les users qui ont au moins (sur tous leurs comptes réunis) minMoney
+     *
+     * @param String $miniMoney
+     * @return JsonResponse
+     */
     #[Route('/api/users/filterMoney/{miniMoney}', name: 'users_get_users_have_more_x_money_in_total', methods: ["GET"])]
     #[ParamConverter("miniMoney", options: ["id" => "miniMoney"])]
     public function get_users_have_more_x_money_in_total(String $miniMoney): JsonResponse
